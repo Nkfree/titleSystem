@@ -265,8 +265,7 @@ Methods.disableTitleForPlayerCmd = function(pid, cmd)
 		
 		local targetName = cmd[2]
 		local targetPid = Methods.validateNameOrPid(targetName)
-		
-		targetName = chatInfoNameColor .. targetName
+		local targetNameMsg = chatInfoNameColor .. targetName
 		
 		if Methods.validateNameOrPid(pid) then 
 		
@@ -274,14 +273,15 @@ Methods.disableTitleForPlayerCmd = function(pid, cmd)
 				if targetPid then
 					if not Players[targetPid]:IsServerStaff() then
 						Methods.DisableTitleNow(targetPid)
-						doMessage(pid, "disableSuccesful", targetName)
+						Methods.DisableTitleOnPlayer(targetName)
+						doMessage(pid, "disableSuccesful", targetNameMsg)
 					else
-						doMessage(pid, "unableToDisableStaffMemeber", targetName)
+						doMessage(pid, "unableToDisableStaffMemeber", targetNameMsg)
 					end
 						
 				else
-					Methods.DisableTitleOnNextConnect(targetName)
-					doMessage(pid, "disableOnNextConnect", targetName)
+					Methods.DisableTitleOnPlayer(targetName)
+					doMessage(pid, "disableOnNextConnect", targetNameMsg)
 				end
 			else
 				doMessage(pid, "unsufficientRank")
@@ -322,7 +322,7 @@ Methods.DisableTitleNow = function(targetPid)
 end
 
 
-Methods.DisableTitleOnNextConnect = function(targetName)
+Methods.DisableTitleOnPlayer = function(targetName)
 	table.insert(disabledPlayers, targetName)
 	SaveJson()
 end
@@ -340,10 +340,11 @@ Methods.pardonPlayerCmd = function(pid, cmd)
 				if targetPid then
 					local targetName = tes3mp.GetName(targetPid)
 						if Methods.RemoveDisabledPlayer(targetName) ~= false then
-							doMessage(pid, "enabledTitleForPlayer", playerName)
+							Methods.ToggleTitle(targetPid, true)
+							doMessage(pid, "enabledTitleForPlayer", targetName)
 							doMessage(targetPid, "enabledTitleByStaff")
 						else
-							doMessage(pid, "notInDisabled", playerName)
+							doMessage(pid, "notInDisabled", targetName)
 						end	
 				end
 			else
@@ -355,13 +356,16 @@ Methods.pardonPlayerCmd = function(pid, cmd)
 		doMessage(pid, "wrongUseCmd", msgCmd)
 	end
 end
-				
 			
 
 
 Methods.RemoveDisabledPlayer = function(targetName)
 	
 	local pIndex = Methods.GetDisabledPlayerIndex(targetName)
+	
+	if pIndex == false then
+		return false
+	end
 	
 	table.remove(disabledPlayers, pIndex)
 	SaveJson()
