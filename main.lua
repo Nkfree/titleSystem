@@ -54,11 +54,13 @@ lang["disabledByStaff"] = "Your title has been disabled by staff for being offen
 lang["enabledTitle"] = "Chat title is on.\n"
 lang["maxCharsExceeded"] = "Your title exceeded maximum allowed number of characters of %d" .. color.Default .. ".\n"
 lang["gotNewTitleAndColor"] = "You have been asigned a %s and it's %s. Use %s" .. color.Default .. " to change it, %s" .. color.Default .. " to change it's color or %s" .. color.Default .. " to see all available title commands.\n"
-lang["unsufficientRank"] = "You need to be at least moderator to use that command."
+lang["unsufficientRank"] = "You need to be at least moderator to use that command.\n"
 lang["wrongUseCmd"] = "Invalid command. Use %s" .. color.Default .. "\n"
-lang["unableToDisableStaffMemeber"] = "You can't disable title for the staff member."
-lang["restrictOffensiveTitle"] = "Such title is considered offensive, don't be shy to use more polite one."
-
+lang["unableToDisableStaffMemeber"] = "You can't disable title for the staff member.\n"
+lang["restrictOffensiveTitle"] = "Such title is considered offensive, don't be shy to use more polite one.\n"
+lang["enabledTitleForPlayer"] = "You have enabled title for player %s" .. color.Default .. ".\n"
+lang["enabledTitleByStaff"] = "Your title has been enabled again by staff member.\n"
+lang["notInDisabled"] = "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
 
 
 local function doMessage(pid, message, ...)
@@ -307,12 +309,13 @@ end
 Methods.GetDisabledPlayerIndex = function(playerName)
 
 	for index, name in pairs(disabledPlayers) do
-		if name == playerName then
+		if string.lower(name) == string.lower(playerName) then
 			return index
 		end
 	end
 	
 	return false
+
 end
 
 
@@ -338,7 +341,12 @@ Methods.pardonPlayerCmd = function(pid, cmd)
 
 				if targetPid then
 					local targetName = tes3mp.GetName(targetPid)
-					Methods.RemoveDisabledPlayer(targetName)
+						if Methods.RemoveDisabledPlayer(targetName) ~= false then
+							doMessage(pid, "enabledTitleForPlayer", playerName)
+							doMessage(targetPid, "enabledTitleByStaff")
+						else
+							doMessage(pid, "notInDisabled", playerName)
+						end	
 				end
 			else
 				doMessage(pid, "unsufficientRank")
@@ -417,7 +425,7 @@ local function OnPlayerSendMessageValidator(eventStatus, pid, message)
 		if Methods.IsTitleEnabled(pid) then
 			if message:sub(1, 1) ~= '/' then
 				local playerColor = Players[pid].data.customVariables.titleData.color
-				local playerTitle = Players[pid].data.customVariables.titleData.title
+				local playerTitle = Players[pid].data.customVariables.titleData.title .. " "
 				local message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
 				
 				if Players[pid]:IsServerOwner() then
