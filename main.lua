@@ -1,5 +1,3 @@
-
-
 -- CHANGE THESE COMMANDS TO SUIT YOUR NEEDS (IT'S WHAT YOU TYPE IN CHAT AFTER THE '/')
 
 
@@ -588,8 +586,6 @@ end
 customEventHooks.registerHandler("OnServerPostInit", OnServerPostInit)
 customEventHooks.registerHandler("OnPlayerAuthentified", OnPlayerAuthentifiedHandler)
 customEventHooks.registerValidator("OnPlayerSendMessage", OnPlayerSendMessageValidator)
-
-
 customCommandHooks.registerCommand(cmds[1], Methods.setColorCmd)
 customCommandHooks.registerCommand(cmds[2], Methods.disableTitleForPlayerCmd)
 customCommandHooks.registerCommand(cmds[3], Methods.displayHelpCmd)
@@ -597,4 +593,3 @@ customCommandHooks.registerCommand(cmds[4], Methods.setTitleCmd)
 customCommandHooks.registerCommand(cmds[5], Methods.toggleTitleForSelfCmd)
 customCommandHooks.registerCommand(cmds[6], Methods.showColorListCmd)
 customCommandHooks.registerCommand(cmds[7], Methods.pardonPlayerCmd)
-
