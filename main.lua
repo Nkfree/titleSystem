@@ -59,7 +59,9 @@ lang["restrictOffensiveTitle"] = "Such title is considered offensive, don't be s
 lang["enabledTitleForPlayer"] = "You have enabled title for player %s" .. color.Default .. ".\n"
 lang["enabledTitleByStaff"] = "Your title has been enabled again by staff member.\n"
 lang["notInDisabled"] = "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
-
+lang["restrictedToStaff"] = "Sorry, this title is restricted to staff members only.\n"
+lang["invalidColor"] = "Invalid color. Use %s" .. color.Default .. " to display available colors.\n"
+lang["noSuchPlayerOnline"] = "There's no player online matching that pid.\n" 
 
 local function doMessage(pid, message, ...)
 
@@ -261,37 +263,54 @@ end
 
 Methods.disableTitleForPlayerCmd = function(pid, cmd)
 
-	if cmd[2] and tonumber(cmd[2]) == nil then
+	if cmd[2] then
 		
-		local targetName = cmd[2]
-		local targetPid = Methods.validateNameOrPid(targetName)
-		local targetNameMsg = chatInfoNameColor .. targetName
+		local targetPid
+		local targetName
+		
+		targetPid = Methods.validateNameOrPid(cmd[2])
 		
 		if Methods.validateNameOrPid(pid) then 
 		
 			if Players[pid]:IsServerStaff() then
 				if targetPid then
+					targetName = tes3mp.GetName(targetPid)
+					local targetNameMsg = chatInfoNameColor .. targetName
+					
 					if not Players[targetPid]:IsServerStaff() then
-						Methods.DisableTitleNow(targetPid)
-						Methods.DisableTitleOnPlayer(targetName)
+						Methods.DisableTitleForPlayer(targetPid)
+						Methods.SaveDisableEntry(targetName)
 						doMessage(pid, "disableSuccesful", targetNameMsg)
 					else
 						doMessage(pid, "unableToDisableStaffMemeber", targetNameMsg)
-					end
-						
+					end	
 				else
-					Methods.DisableTitleOnPlayer(targetName)
-					doMessage(pid, "disableOnNextConnect", targetNameMsg)
+					doMessage(pid, "noSuchPlayerOnline")
 				end
 			else
 				doMessage(pid, "unsufficientRank")
 			end
 		end
 	else
-		local msgCmd = menuCmd[2]
-		doMessage(pid, "wrongUseCmd", msgCmd)
+		doMessage(pid, "wrongUseCmd", menuCmd[2])
 	end
 end
+
+
+Methods.IsTitleStaffTag = function(newTitle)
+
+	local staffTitles = {"Owner", "Admin", "Mod", "Moderator", "GM", "GameMaster"}
+	
+	for _, title in pairs(staffTitles) do
+		if title == newTitle then
+			return true
+		end
+	end
+	
+	return false
+end
+	
+	
 
 
 Methods.IsPlayerDisabled = function(playerName)
@@ -317,12 +336,12 @@ Methods.GetDisabledPlayerIndex = function(playerName)
 end
 
 
-Methods.DisableTitleNow = function(targetPid)
+Methods.DisableTitleForPlayer = function(targetPid)
 	Methods.ToggleTitle(targetPid, false)
 end
 
 
-Methods.DisableTitleOnPlayer = function(targetName)
+Methods.SaveDisableEntry = function(targetName)
 	table.insert(disabledPlayers, targetName)
 	SaveJson()
 end
@@ -352,8 +371,7 @@ Methods.pardonPlayerCmd = function(pid, cmd)
 			end
 		end
 	else
-		local msgCmd = menuCmd[7]
-		doMessage(pid, "wrongUseCmd", msgCmd)
+		doMessage(pid, "wrongUseCmd", menuCmd[7])
 	end
 end
 			
@@ -405,7 +423,7 @@ local function OnPlayerAuthentifiedHandler(eventStatus, pid)
 		
 		if Methods.IsPlayerDisabled(playerName) then
 			if Players[pid].data.customVariables.titleData.enabled then
-				Methods.DisableTitleNow(pid, true)
+				Methods.DisableTitleForPlayer(pid, true)
 			end
 			doMessage(pid, "disabledByStaff")
 		else
@@ -497,14 +515,19 @@ Methods.setTitleCmd = function(pid, cmd)
 					if string.len(title) <= maxTitleLength then
 						
 						if Methods.IsTitleOffensive(title) == false then
-					
-							local titleColor = Players[pid].data.customVariables.titleData.color
-							titleColor = color[titleColor]
-							local msgTitle = titleColor .. title
 							
-							title = "[" .. title .. "]"
-							Methods.SetTitle(pid, title)
-							doMessage(pid, "changeSuccessSelf", "title", msgTitle)
+							if Methods.IsTitleStaffTag(title) == false then
+					
+								local titleColor = Players[pid].data.customVariables.titleData.color
+								titleColor = color[titleColor]
+								local msgTitle = titleColor .. title
+								
+								title = "[" .. title .. "]"
+								Methods.SetTitle(pid, title)
+								doMessage(pid, "changeSuccessSelf", "title", msgTitle)
+							else
+								doMessage(pid, "restrictedToStaff")
+							end
 						else
 							doMessage(pid, "restrictOffensiveTitle")
 						end
@@ -541,7 +564,7 @@ Methods.LookupColor = function(colorToFind)
 		end
 	end
 
-return false
+	return false
 
 end
 
@@ -564,13 +587,15 @@ Methods.setColorCmd = function(pid, cmd)
 						Methods.SetColor(pid, newColor)
 						doMessage(pid, "changeSuccessSelf", lang.Color, color[newColor] .. string.lower(newColor))
 					else
-						doMessage(pid, "invalidColor")
+						doMessage(pid, "invalidColor", menuCmd[6])
 					end
 				end
 			else
 				doMessage(pid, "disabledByStaff")
 			end
 		end
+	else
+		doMessage(pid, "wrongUseCmd", menuCmd[1])
 	end
 end
 
