@@ -10,7 +10,7 @@ cmds[4] = "settitle"
 cmds[5] = "title"
 cmds[6] = "listcolors"
 cmds[7] = "pardon"
-cmds[8] = "incognito"
+cmds[8] = "incognito" -- command for staff members to hide their staff titles for regular players in chat (Owner, Admin, Mod)
 
 local chatPrefix = "Titles" -- INFORMATIVE TAG DISPLAYED IN CHAT AFTER YOU PERFORM A CHANGE TO COLOR OR TITLE
 local chatPrefixColor = color.Green -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
@@ -18,6 +18,7 @@ local chatInfoNameColor = color.LightBlue
 local chatInfoCommandColor = color.Yellow
 
 local maxTitleLength = 12 -- maximum allowed characters per title ('space' counts as character)
+local incognitoEnabled = true -- change this to false if you don't wish staff members to use this cmd
 
 
 
@@ -48,7 +49,6 @@ local lang = {}
 lang["Title"] = "title"
 lang["Color"] = "color"
 lang["changeSuccessSelf"] = "You have successfully changed %s" .. color.Default .. " to %s" .. color.Default .. ".\n"
-lang["changeFailureSelf"] = "You failed to change %s" .. color.Default .. ".\n"
 lang["disableSuccesful"] = "You have successfully disabled title for %s" .. color.Default .. ".\n"
 lang["disabledTitle"] = "Chat title is off.\n"
 lang["disabledByStaff"] = "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n"
@@ -435,25 +435,31 @@ local function OnPlayerSendMessageValidator(eventStatus, pid, message)
 			if message:sub(1, 1) ~= '/' then
 				local playerColor = Players[pid].data.customVariables.titleData.color
 				local playerTitle = Players[pid].data.customVariables.titleData.title .. " "
-				local message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
 				
-				if Players[pid].data.customVariables.titleData.incognito == "off" then
-					if Players[pid]:IsServerOwner() then
-						message = config.rankColors.serverOwner .. "[Owner] " .. message
-					elseif Players[pid]:IsAdmin() then
-						message = config.rankColors.admin .. "[Admin] " .. message
-					elseif Players[pid]:IsModerator() then
-						message = config.rankColors.moderator .. "[Mod] " .. message
+				for id, _ in pairs(Players) do
+					local message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
+					if Methods.validateNameOrPid(id) then
+						
+				
+						if Players[id]:IsServerStaff() or Players[pid].data.customVariables.titleData.incognito == "off" then
+							if Players[pid]:IsServerOwner() then
+								message = config.rankColors.serverOwner .. "[Owner] " .. message
+							elseif Players[pid]:IsAdmin() then
+								message = config.rankColors.admin .. "[Admin] " .. message
+							elseif Players[pid]:IsModerator() then
+								message = config.rankColors.moderator .. "[Mod] " .. message
+							end
+						end
+					
+						if Methods.IsTitleEnabled(pid) then
+						
+							message = color[playerColor] .. playerTitle .. message
+							
+						end
+						
+						tes3mp.SendMessage(id, message, false)
 					end
 				end
-				
-				if Methods.IsTitleEnabled(pid) then
-				
-					message = color[playerColor] .. playerTitle .. message
-					
-				end
-				
-				tes3mp.SendMessage(pid, message, true)
 			
 				return customEventHooks.makeEventStatus(false,false)
 			end
@@ -639,4 +645,6 @@ customCommandHooks.registerCommand(cmds[4], Methods.setTitleCmd)
 customCommandHooks.registerCommand(cmds[5], Methods.toggleTitleForSelfCmd)
 customCommandHooks.registerCommand(cmds[6], Methods.showColorListCmd)
 customCommandHooks.registerCommand(cmds[7], Methods.pardonPlayerCmd)
-customCommandHooks.registerCommand(cmds[8], Methods.incognitoCmd)
+if incognitoEnabled ~= false then
+	customCommandHooks.registerCommand(cmds[8], Methods.incognitoCmd)
+end
