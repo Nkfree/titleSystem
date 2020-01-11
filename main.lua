@@ -10,6 +10,7 @@ cmds[4] = "settitle"
 cmds[5] = "title"
 cmds[6] = "listcolors"
 cmds[7] = "pardon"
+cmds[8] = "incognito"
 
 local chatPrefix = "Titles" -- INFORMATIVE TAG DISPLAYED IN CHAT AFTER YOU PERFORM A CHANGE TO COLOR OR TITLE
 local chatPrefixColor = color.Green -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
@@ -23,17 +24,19 @@ local maxTitleLength = 12 -- maximum allowed characters per title ('space' count
 
 -- DO NOT CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING
 
-local titleData = {color = "Grey", enabled = true, title = "[default title]"}
+local titleData = {color = "Grey", enabled = true, incognito = "off", title = "[default title]"}
 
 local menuCmd = {}
 
 menuCmd[1] = chatInfoCommandColor .. "/" .. cmds[1] .. " <color>"
-menuCmd[2] = chatInfoCommandColor .. "/" .. cmds[2] .. " <playerName>"
+menuCmd[2] = chatInfoCommandColor .. "/" .. cmds[2] .. " <pid>"
 menuCmd[3] = chatInfoCommandColor .. "/" .. cmds[3]
 menuCmd[4] = chatInfoCommandColor .. "/" .. cmds[4] .. " <title>"
 menuCmd[5] = chatInfoCommandColor .. "/" .. cmds[5] .. " <on/off>"
 menuCmd[6] = chatInfoCommandColor .. "/" .. cmds[6]
-menuCmd[7] = chatInfoCommandColor .. "/" .. cmds[7] .. " <id/name>"
+menuCmd[7] = chatInfoCommandColor .. "/" .. cmds[7] .. " <pid/name>"
+menuCmd[8] = chatInfoCommandColor .. "/" .. cmds[8] .. " <on/off>"
+
 
 local guiId = {}
 
@@ -61,7 +64,9 @@ lang["enabledTitleByStaff"] = "Your title has been enabled again by staff member
 lang["notInDisabled"] = "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
 lang["restrictedToStaff"] = "Sorry, this title is restricted to staff members only.\n"
 lang["invalidColor"] = "Invalid color. Use %s" .. color.Default .. " to display available colors.\n"
-lang["noSuchPlayerOnline"] = "There's no player online matching that pid.\n" 
+lang["noSuchPlayerOnline"] = "There's no player online matching that pid.\n"
+lang["incognitoOff"] = "You have disabled incognito mode.\n"
+lang["incognitoOn"] = "You have enabled incognito mode.\n"
 
 local function doMessage(pid, message, ...)
 
@@ -206,46 +211,30 @@ Methods.validateNameOrPid = function(NoP)-- checks whether pid used is logged in
 end
 
 
-Methods.ToggleTitle = function(pid, enable)
+Methods.ToggleTitle = function(pid)
 
-	if Players[pid].data.customVariables.titleData then
-		if enable and Players[pid].data.customVariables.titleData.enabled == false then
-			Players[pid].data.customVariables.titleData.enabled = true
-		else
-			Players[pid].data.customVariables.titleData.enabled = false
-		end
-		Players[pid]:QuicksaveToDrive()
+	if Players[pid].data.customVariables.titleData.enabled == true then
+		Players[pid].data.customVariables.titleData.enabled = false
+		doMessage(pid, "disabledTitle")
+	elseif Players[pid].data.customVariables.titleData.enabled == false then
+		Players[pid].data.customVariables.titleData.enabled = true
+		doMessage(pid, "enabledTitle")
 	end
+	
+	Players[pid]:QuicksaveToDrive()
 end
 
 
 Methods.toggleTitleForSelfCmd = function(pid, cmd)
-	
-	if cmd[2] == "on" or cmd[2] == "off" then
 		
-		if Methods.validateNameOrPid(pid) then
-			local playerName = tes3mp.GetName(pid)
-			
-			if not Methods.IsPlayerDisabled(playerName) then
+	if Methods.validateNameOrPid(pid) then
+		local playerName = tes3mp.GetName(pid)
 		
-				local enable = false
-				local message = "disabledTitle"
-				
-				if cmd[2] == "on" then
-					enable = true
-					message = "enabledTitle"
-				end
-			
-				Methods.ToggleTitle(pid, enable)
-				doMessage(pid, message)
-			else
-				doMessage(pid, "disabledByStaff")
-			end
+		if not Methods.IsPlayerDisabled(playerName) then
+			Methods.ToggleTitle(pid)
+		else
+			doMessage(pid, "disabledByStaff")
 		end
-		
-	else
-		local msgCmd = menuCmd[5]
-		doMessage(pid, "wrongUseCmd", msgCmd)
 	end
 end
 
@@ -302,7 +291,7 @@ Methods.IsTitleStaffTag = function(newTitle)
 	local staffTitles = {"Owner", "Admin", "Mod", "Moderator", "GM", "GameMaster"}
 	
 	for _, title in pairs(staffTitles) do
-		if title == newTitle then
+		if string.upper(title) == string.upper(newTitle) then
 			return true
 		end
 	end
@@ -337,7 +326,8 @@ end
 
 
 Methods.DisableTitleForPlayer = function(targetPid)
-	Methods.ToggleTitle(targetPid, false)
+	Players[targetPid].data.customVariables.titleData.enabled = false
+	Players[targetPid]:QuicksaveToDrive()
 end
 
 
@@ -359,7 +349,7 @@ Methods.pardonPlayerCmd = function(pid, cmd)
 				if targetPid then
 					local targetName = tes3mp.GetName(targetPid)
 						if Methods.RemoveDisabledPlayer(targetName) ~= false then
-							Methods.ToggleTitle(targetPid, true)
+							Methods.ToggleTitle(targetPid)
 							doMessage(pid, "enabledTitleForPlayer", targetName)
 							doMessage(targetPid, "enabledTitleByStaff")
 						else
@@ -423,7 +413,7 @@ local function OnPlayerAuthentifiedHandler(eventStatus, pid)
 		
 		if Methods.IsPlayerDisabled(playerName) then
 			if Players[pid].data.customVariables.titleData.enabled then
-				Methods.DisableTitleForPlayer(pid, true)
+				Methods.DisableTitleForPlayer(pid)
 			end
 			doMessage(pid, "disabledByStaff")
 		else
@@ -442,27 +432,31 @@ local function OnPlayerSendMessageValidator(eventStatus, pid, message)
 
 	if Methods.validateNameOrPid(pid) and Methods.HasTitle(pid) then
 		
-		if Methods.IsTitleEnabled(pid) then
 			if message:sub(1, 1) ~= '/' then
 				local playerColor = Players[pid].data.customVariables.titleData.color
 				local playerTitle = Players[pid].data.customVariables.titleData.title .. " "
 				local message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
 				
-				if Players[pid]:IsServerOwner() then
-					message = config.rankColors.serverOwner .. "[Owner] " .. message
-				elseif Players[pid]:IsAdmin() then
-					message = config.rankColors.admin .. "[Admin] " .. message
-				elseif Players[pid]:IsModerator() then
-					message = config.rankColors.moderator .. "[Mod] " .. message
+				if Players[pid].data.customVariables.titleData.incognito == "off" then
+					if Players[pid]:IsServerOwner() then
+						message = config.rankColors.serverOwner .. "[Owner] " .. message
+					elseif Players[pid]:IsAdmin() then
+						message = config.rankColors.admin .. "[Admin] " .. message
+					elseif Players[pid]:IsModerator() then
+						message = config.rankColors.moderator .. "[Mod] " .. message
+					end
 				end
 				
-				message = color[playerColor] .. playerTitle .. message
+				if Methods.IsTitleEnabled(pid) then
+				
+					message = color[playerColor] .. playerTitle .. message
+					
+				end
 				
 				tes3mp.SendMessage(pid, message, true)
 			
 				return customEventHooks.makeEventStatus(false,false)
 			end
-		end
 	end
 end
 		
@@ -479,6 +473,29 @@ Methods.HasTitle = function(pid)
 	return false
 
 end
+
+
+Methods.incognitoCmd = function(pid, cmd)
+
+	if Methods.validateNameOrPid(pid) then 
+		if Players[pid]:IsServerStaff() then
+
+				if Players[pid].data.customVariables.titleData.incognito == "off" then
+					Players[pid].data.customVariables.titleData.incognito = "on"
+					doMessage(pid, "incognitoOn")
+				elseif Players[pid].data.customVariables.titleData.incognito == "on" then
+					Players[pid].data.customVariables.titleData.incognito = "off"
+					doMessage(pid, "incognitoOff")
+				end
+				
+				Players[pid]:QuicksaveToDrive()
+		else
+			doMessage(pid, "unsufficientRank")
+		end
+	end
+end
+
+
 
 
 Methods.SetTitle = function(pid, title)
@@ -622,3 +639,4 @@ customCommandHooks.registerCommand(cmds[4], Methods.setTitleCmd)
 customCommandHooks.registerCommand(cmds[5], Methods.toggleTitleForSelfCmd)
 customCommandHooks.registerCommand(cmds[6], Methods.showColorListCmd)
 customCommandHooks.registerCommand(cmds[7], Methods.pardonPlayerCmd)
+customCommandHooks.registerCommand(cmds[8], Methods.incognitoCmd)
