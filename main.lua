@@ -10,12 +10,13 @@ cmds[4] = "settitle"
 cmds[5] = "title"
 cmds[6] = "listcolors"
 cmds[7] = "pardon"
-cmds[8] = "incognito" -- command for staff members to hide their staff titles for regular players in chat (Owner, Admin, Mod)
+cmds[8] = "incognito"
 
 local chatPrefix = "Titles" -- INFORMATIVE TAG DISPLAYED IN CHAT AFTER YOU PERFORM A CHANGE TO COLOR OR TITLE
-local chatPrefixColor = color.Green -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
-local chatInfoNameColor = color.LightBlue
+local chatPrefixColor = color.DodgerBlue -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
+local chatInfoNameColor = color.SkyBlue
 local chatInfoCommandColor = color.Yellow
+local chatWarningColor = color.Warning
 
 local maxTitleLength = 12 -- maximum allowed characters per title ('space' counts as character)
 local incognitoEnabled = true -- change this to false if you don't wish staff members to use this cmd
@@ -23,20 +24,32 @@ local incognitoEnabled = true -- change this to false if you don't wish staff me
 
 
 
+
 -- DO NOT CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING
 
-local titleData = {color = "Grey", enabled = true, incognito = "off", title = "[default title]"}
+local titleData = {color = "GoldenRod", enabled = true, incognito = "off", title = "[default title]"}
+
+local cmdDesc = {}
+
+cmdDesc[1] = "\n - sets color of title to color of choice"
+cmdDesc[2] = "\n - disables title for certain player"
+cmdDesc[3] = "\n - displays available title system commands"
+cmdDesc[4] = "\n - sets new title if it meets requirements"
+cmdDesc[5] = "\n - toggles title visibility in chat"
+cmdDesc[6] = "\n - displays list of all available colors"
+cmdDesc[7] = "\n - pardons a player whose title was disabled"
+cmdDesc[8] = "\n - hides staff title in chat from regular players"
 
 local menuCmd = {}
 
 menuCmd[1] = chatInfoCommandColor .. "/" .. cmds[1] .. " <color>"
-menuCmd[2] = chatInfoCommandColor .. "/" .. cmds[2] .. " <pid>"
+menuCmd[2] = chatInfoCommandColor .. "/" .. cmds[2] .. " <pid/name>"
 menuCmd[3] = chatInfoCommandColor .. "/" .. cmds[3]
 menuCmd[4] = chatInfoCommandColor .. "/" .. cmds[4] .. " <title>"
-menuCmd[5] = chatInfoCommandColor .. "/" .. cmds[5] .. " <on/off>"
+menuCmd[5] = chatInfoCommandColor .. "/" .. cmds[5]
 menuCmd[6] = chatInfoCommandColor .. "/" .. cmds[6]
 menuCmd[7] = chatInfoCommandColor .. "/" .. cmds[7] .. " <pid/name>"
-menuCmd[8] = chatInfoCommandColor .. "/" .. cmds[8] .. " <on/off>"
+menuCmd[8] = chatInfoCommandColor .. "/" .. cmds[8]
 
 
 local guiId = {}
@@ -48,23 +61,23 @@ local lang = {}
 
 lang["Title"] = "title"
 lang["Color"] = "color"
-lang["changeSuccessSelf"] = "You have successfully changed %s" .. color.Default .. " to %s" .. color.Default .. ".\n"
-lang["disableSuccesful"] = "You have successfully disabled title for %s" .. color.Default .. ".\n"
+lang["changeSuccessSelf"] = "You have changed %s" .. color.Default .. " to %s" .. color.Default .. ".\n"
+lang["disableSuccesful"] = "You have disabled title for " .. chatInfoNameColor .. "%s" .. color.Default .. ".\n"
 lang["disabledTitle"] = "Chat title is off.\n"
-lang["disabledByStaff"] = "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n"
+lang["disabledByStaff"] = chatWarningColor .. "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n"
 lang["enabledTitle"] = "Chat title is on.\n"
-lang["maxCharsExceeded"] = "Your title exceeded maximum allowed number of characters of %d" .. color.Default .. ".\n"
-lang["gotNewTitleAndColor"] = "You have been asigned a %s and it's %s. Use %s" .. color.Default .. " to change it, %s" .. color.Default .. " to change it's color or %s" .. color.Default .. " to see all available title commands.\n"
-lang["unsufficientRank"] = "You need to be at least moderator to use that command.\n"
+lang["maxCharsExceeded"] = chatWarningColor .. "Your title exceeded maximum allowed number of characters of %d" .. color.Default .. ".\n"
+lang["gotNewTitleAndColor"] = "You have been asigned a %s and it's %s. Use %s" .. color.Default .. " to change it, %s" .. color.Default .. " to change it's color or %s" .. color.Default .. " to see all related commands.\n"
+lang["unsufficientRank"] = chatWarningColor .. "You need to be at least moderator to use that command.\n"
 lang["wrongUseCmd"] = "Invalid command. Use %s" .. color.Default .. "\n"
-lang["unableToDisableStaffMemeber"] = "You can't disable title for the staff member.\n"
-lang["restrictOffensiveTitle"] = "Such title is considered offensive, don't be shy to use more polite one.\n"
-lang["enabledTitleForPlayer"] = "You have enabled title for player %s" .. color.Default .. ".\n"
-lang["enabledTitleByStaff"] = "Your title has been enabled again by staff member.\n"
-lang["notInDisabled"] = "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
-lang["restrictedToStaff"] = "Sorry, this title is restricted to staff members only.\n"
+lang["unableToDisableStaffMemeber"] = chatWarningColor .. "You can't disable title for the staff member.\n"
+lang["restrictOffensiveTitle"] = chatWarningColor .. "Such title is considered offensive, don't be shy to use more polite one.\n"
+lang["enabledTitleForPlayer"] = "You have enabled title for " .. chatInfoNameColor .. "%s" .. color.Default .. ".\n"
+lang["enabledTitleByStaff"] = "Your title has been enabled again by a staff member.\n"
+lang["notInDisabled"] = chatWarningColor .. "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
+lang["restrictedToStaff"] = chatWarningColor .. "Sorry, this title is restricted to staff members only.\n"
 lang["invalidColor"] = "Invalid color. Use %s" .. color.Default .. " to display available colors.\n"
-lang["noSuchPlayerOnline"] = "There's no player online matching that pid.\n"
+lang["noSuchPlayerOnline"] = chatWarningColor .. "There's no player online matching that pid.\n"
 lang["incognitoOff"] = "You have disabled incognito mode.\n"
 lang["incognitoOn"] = "You have enabled incognito mode.\n"
 
@@ -123,18 +136,43 @@ Methods.IsTitleOffensive = function(newTitle) -- at least simple function to pro
 end
 
 
+Methods.sortHelp = function(forStaff)
+
+	local newTable = {}
+	
+	if forStaff == false then
+	
+		for i = 1, #menuCmd do
+			if i ~= 2 and i ~= 7 and i ~= 8 then
+				table.insert(newTable, menuCmd[i] .. cmdDesc[i])
+			end
+		end
+	else
+		for i = 1, #menuCmd do
+			table.insert(newTable, menuCmd[i] .. cmdDesc[i])
+		end
+	end
+	
+	table.sort(newTable)
+	
+	return newTable
+end
+		
+
+
 Methods.StaffHelp = function(pid)
 
 	local list = ""
 	local title = color.Orange .. "\nTitle Staff Help"
 	local divider = "\n"
+	local helpTable = Methods.sortHelp(true)
 
-	for i = 1, #menuCmd do
-		if i == #menuCmd then
+	for i = 1, #helpTable do
+		if i == #helpTable then
 			divider = ""
 		end
 		
-		list = list .. menuCmd[i] .. divider
+		list = list .. helpTable[i] .. divider
 	end
 	
 	tes3mp.ListBox(pid, guiId.staffHelp, title, list)
@@ -146,16 +184,14 @@ Methods.PlayerHelp = function(pid)
 	local list = ""
 	local title = color.Orange .. "\nTitle Player Help"
 	local divider = "\n"
+	local helpTable = Methods.sortHelp(false)
 
-	for i = 1, #menuCmd do
-		if i == #menuCmd - 1 then
+	for i = 1, #helpTable do
+		if i == #helpTable then
 			divider = ""
 		end
 		
-		if i ~= 2 and i ~= 7 then
-		
-			list = list .. menuCmd[i] .. divider
-		end
+		list = list .. helpTable[i] .. divider
 	end
 	
 	tes3mp.ListBox(pid, guiId.playerHelp, title, list)
@@ -252,26 +288,27 @@ end
 
 Methods.disableTitleForPlayerCmd = function(pid, cmd)
 
-	if cmd[2] then
+	if #cmd > 1 then
+		
+		local target = tableHelper.concatenateFromIndex(cmd, 2, " ")
 		
 		local targetPid
 		local targetName
 		
-		targetPid = Methods.validateNameOrPid(cmd[2])
+		targetPid = Methods.validateNameOrPid(target)
 		
 		if Methods.validateNameOrPid(pid) then 
 		
 			if Players[pid]:IsServerStaff() then
 				if targetPid then
 					targetName = tes3mp.GetName(targetPid)
-					local targetNameMsg = chatInfoNameColor .. targetName
 					
 					if not Players[targetPid]:IsServerStaff() then
 						Methods.DisableTitleForPlayer(targetPid)
 						Methods.SaveDisableEntry(targetName)
-						doMessage(pid, "disableSuccesful", targetNameMsg)
+						doMessage(pid, "disableSuccesful", targetName)
 					else
-						doMessage(pid, "unableToDisableStaffMemeber", targetNameMsg)
+						doMessage(pid, "unableToDisableStaffMemeber", targetName)
 					end	
 				else
 					doMessage(pid, "noSuchPlayerOnline")
@@ -339,22 +376,27 @@ end
 
 Methods.pardonPlayerCmd = function(pid, cmd)
 
-	if cmd[2] then
+	if #cmd > 1 then
+		
+		local target = tableHelper.concatenateFromIndex(cmd, 2, " ")
+		
 		if Methods.validateNameOrPid(pid) then
 	
 			if Players[pid]:IsServerStaff() then
 			
-				local targetPid = Methods.validateNameOrPid(cmd[2])
+				local targetPid = Methods.validateNameOrPid(target)
 
 				if targetPid then
 					local targetName = tes3mp.GetName(targetPid)
-						if Methods.RemoveDisabledPlayer(targetName) ~= false then
-							Methods.ToggleTitle(targetPid)
-							doMessage(pid, "enabledTitleForPlayer", targetName)
-							doMessage(targetPid, "enabledTitleByStaff")
-						else
-							doMessage(pid, "notInDisabled", targetName)
-						end	
+					if Methods.RemoveDisabledPlayer(targetName) ~= false then
+						Methods.ToggleTitle(targetPid)
+						doMessage(pid, "enabledTitleForPlayer", targetName)
+						doMessage(targetPid, "enabledTitleByStaff")
+					else
+						doMessage(pid, "notInDisabled", targetName)
+					end
+				else
+					doMessage(pid, "noSuchPlayerOnline")
 				end
 			else
 				doMessage(pid, "unsufficientRank")
