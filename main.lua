@@ -567,11 +567,7 @@ Methods.setTitleCmd = function(pid, cmd)
 			
 				if Methods.HasTitle(pid) then
 	
-					local title = ""
-					
-					for i = 2, #cmd do
-						title = title .. " " .. cmd[i]
-					end
+					local title = tableHelper.concatenateFromIndex(cmd, 2, " ")
 					
 					if title:sub(1,1) == ' ' then
 						title = title:gsub("%s", "", 1)
