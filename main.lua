@@ -11,23 +11,25 @@ cmds[5] = "title"
 cmds[6] = "listcolors"
 cmds[7] = "pardon"
 cmds[8] = "incognito"
+cmds[9] = "setnickcolor"
 
 local chatPrefix = "Titles" -- INFORMATIVE TAG DISPLAYED IN CHAT AFTER YOU PERFORM A CHANGE TO COLOR OR TITLE
 local chatPrefixColor = color.DodgerBlue -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
 local chatInfoNameColor = color.SkyBlue
 local chatInfoCommandColor = color.Yellow
-local chatWarningColor = color.Warning
+local chatWarningColor = color.Orange
 
 local maxTitleLength = 12 -- maximum allowed characters per title ('space' counts as character)
 local incognitoEnabled = true -- change this to false if you don't wish staff members to use this cmd
-
+local nickColorEnabled = true -- change this to false if you don't wish players to use this cmd
+local barelyVisibleColorsNick = {"black", "navy", "midnightblue", "darkblue"}
 
 
 
 
 -- DO NOT CHANGE UNLESS YOU KNOW WHAT YOU ARE DOING
 
-local titleData = {color = "GoldenRod", enabled = true, incognito = "off", title = "[default title]"}
+local titleData = {color = "GoldenRod", enabled = true, incognito = "off", nickColor = "White", title = "[default title]"}
 
 local cmdDesc = {}
 
@@ -39,6 +41,7 @@ cmdDesc[5] = "\n - toggles title visibility in chat"
 cmdDesc[6] = "\n - displays list of all available colors"
 cmdDesc[7] = "\n - pardons a player whose title was disabled"
 cmdDesc[8] = "\n - hides staff title in chat from regular players"
+cmdDesc[9] = "\n - sets color of chat nick to color of choice"
 
 local menuCmd = {}
 
@@ -50,6 +53,7 @@ menuCmd[5] = chatInfoCommandColor .. "/" .. cmds[5]
 menuCmd[6] = chatInfoCommandColor .. "/" .. cmds[6]
 menuCmd[7] = chatInfoCommandColor .. "/" .. cmds[7] .. " <pid/name>"
 menuCmd[8] = chatInfoCommandColor .. "/" .. cmds[8]
+menuCmd[9] = chatInfoCommandColor .. "/" .. cmds[9] .. " <color>"
 
 
 local guiId = {}
@@ -61,10 +65,12 @@ local lang = {}
 
 lang["Title"] = "title"
 lang["Color"] = "color"
+lang["NickColor"] = "nick color"
 lang["changeSuccessSelf"] = "You have changed %s" .. color.Default .. " to %s" .. color.Default .. ".\n"
 lang["disableSuccesful"] = "You have disabled title for " .. chatInfoNameColor .. "%s" .. color.Default .. ".\n"
 lang["disabledTitle"] = "Chat title is off.\n"
 lang["disabledByStaff"] = chatWarningColor .. "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n"
+lang["disabledByStaffCmd"] = chatWarningColor .. "This command was disabled by staff.\n"
 lang["enabledTitle"] = "Chat title is on.\n"
 lang["maxCharsExceeded"] = chatWarningColor .. "Your title exceeded maximum allowed number of characters of %d" .. color.Default .. ".\n"
 lang["gotNewTitleAndColor"] = "You have been asigned a %s and it's %s. Use %s" .. color.Default .. " to change it, %s" .. color.Default .. " to change it's color or %s" .. color.Default .. " to see all related commands.\n"
@@ -80,6 +86,7 @@ lang["invalidColor"] = "Invalid color. Use %s" .. color.Default .. " to display 
 lang["noSuchPlayerOnline"] = chatWarningColor .. "There's no player online matching that pid.\n"
 lang["incognitoOff"] = "You have disabled incognito mode.\n"
 lang["incognitoOn"] = "You have enabled incognito mode.\n"
+lang["invalidColorNick"] = chatWarningColor .. "Dark colors are not allowed as they render nick barely visible.\n"
 
 local function doMessage(pid, message, ...)
 
@@ -136,7 +143,19 @@ Methods.IsTitleOffensive = function(newTitle) -- at least simple function to pro
 end
 
 
-Methods.sortHelp = function(forStaff)
+Methods.IsColorBarelyVisible = function(colorToCheck)
+	
+	for _, col in pairs(barelyVisibleColorsNick) do
+		if string.lower(colorToCheck) == string.lower(col) then
+			return true
+		end
+	end
+	
+	return false
+end
+
+
+Methods.SortHelp = function(forStaff)
 
 	local newTable = {}
 	
@@ -165,7 +184,7 @@ Methods.StaffHelp = function(pid)
 	local list = ""
 	local title = color.Orange .. "\nTitle Staff Help"
 	local divider = "\n"
-	local helpTable = Methods.sortHelp(true)
+	local helpTable = Methods.SortHelp(true)
 
 	for i = 1, #helpTable do
 		if i == #helpTable then
@@ -184,7 +203,7 @@ Methods.PlayerHelp = function(pid)
 	local list = ""
 	local title = color.Orange .. "\nTitle Player Help"
 	local divider = "\n"
-	local helpTable = Methods.sortHelp(false)
+	local helpTable = Methods.SortHelp(false)
 
 	for i = 1, #helpTable do
 		if i == #helpTable then
@@ -288,16 +307,15 @@ end
 
 Methods.disableTitleForPlayerCmd = function(pid, cmd)
 
-	if #cmd > 1 then
+	if Methods.validateNameOrPid(pid) then
+		if #cmd > 1 then
 		
 		local target = tableHelper.concatenateFromIndex(cmd, 2, " ")
 		
 		local targetPid
 		local targetName
 		
-		targetPid = Methods.validateNameOrPid(target)
-		
-		if Methods.validateNameOrPid(pid) then 
+		targetPid = Methods.validateNameOrPid(target) 
 		
 			if Players[pid]:IsServerStaff() then
 				if targetPid then
@@ -316,9 +334,9 @@ Methods.disableTitleForPlayerCmd = function(pid, cmd)
 			else
 				doMessage(pid, "unsufficientRank")
 			end
+		else
+			doMessage(pid, "wrongUseCmd", menuCmd[2])
 		end
-	else
-		doMessage(pid, "wrongUseCmd", menuCmd[2])
 	end
 end
 
@@ -376,34 +394,33 @@ end
 
 Methods.pardonPlayerCmd = function(pid, cmd)
 
-	if #cmd > 1 then
-		
-		local target = tableHelper.concatenateFromIndex(cmd, 2, " ")
-		
-		if Methods.validateNameOrPid(pid) then
-	
-			if Players[pid]:IsServerStaff() then
+	if Methods.validateNameOrPid(pid) then
+		if #cmd > 1 then
 			
-				local targetPid = Methods.validateNameOrPid(target)
+			local target = tableHelper.concatenateFromIndex(cmd, 2, " ")
+		
+				if Players[pid]:IsServerStaff() then
+				
+					local targetPid = Methods.validateNameOrPid(target)
 
-				if targetPid then
-					local targetName = tes3mp.GetName(targetPid)
-					if Methods.RemoveDisabledPlayer(targetName) ~= false then
-						Methods.ToggleTitle(targetPid)
-						doMessage(pid, "enabledTitleForPlayer", targetName)
-						doMessage(targetPid, "enabledTitleByStaff")
+					if targetPid then
+						local targetName = tes3mp.GetName(targetPid)
+						if Methods.RemoveDisabledPlayer(targetName) ~= false then
+							Methods.ToggleTitle(targetPid)
+							doMessage(pid, "enabledTitleForPlayer", targetName)
+							doMessage(targetPid, "enabledTitleByStaff")
+						else
+							doMessage(pid, "notInDisabled", targetName)
+						end
 					else
-						doMessage(pid, "notInDisabled", targetName)
+						doMessage(pid, "noSuchPlayerOnline")
 					end
 				else
-					doMessage(pid, "noSuchPlayerOnline")
+					doMessage(pid, "unsufficientRank")
 				end
-			else
-				doMessage(pid, "unsufficientRank")
-			end
+		else
+			doMessage(pid, "wrongUseCmd", menuCmd[7])
 		end
-	else
-		doMessage(pid, "wrongUseCmd", menuCmd[7])
 	end
 end
 			
@@ -429,7 +446,9 @@ Methods.CreateEntry = function(pid)
 	end
 	
 	for key, value in pairs(titleData) do
-		Players[pid].data.customVariables.titleData[key] = value
+		if Players[pid].data.customVariables.titleData[key] == nil then
+			Players[pid].data.customVariables.titleData[key] = value
+		end
 	end
 	
 	Players[pid]:QuicksaveToDrive()
@@ -461,8 +480,14 @@ local function OnPlayerAuthentifiedHandler(eventStatus, pid)
 		else
 			if not Methods.HasTitle(pid) then
 				tes3mp.StartTimer(tes3mp.CreateTimerEx("timer_newTitle", 1000, "i", pid))
-				Methods.CreateEntry(pid)
 			end
+			
+			Methods.CreateEntry(pid)
+			
+			if Methods.IsColorBarelyVisible(Players[pid].data.customVariables.titleData.nickColor) then
+				Players[pid].data.customVariables.titleData.nickColor = White
+			end
+			
 		end
 	
 	end
@@ -475,11 +500,18 @@ local function OnPlayerSendMessageValidator(eventStatus, pid, message)
 	if Methods.validateNameOrPid(pid) and Methods.HasTitle(pid) then
 		
 			if message:sub(1, 1) ~= '/' then
+				local playerNickColor = Players[pid].data.customVariables.titleData.nickColor
 				local playerColor = Players[pid].data.customVariables.titleData.color
 				local playerTitle = Players[pid].data.customVariables.titleData.title .. " "
 				
 				for id, _ in pairs(Players) do
-					local message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
+					local message = message
+					if playerNickColor then
+						message = color[playerNickColor] .. logicHandler.GetChatName(pid) .. ": " .. color.Default .. message .. "\n"
+					else
+						message = color.Default .. logicHandler.GetChatName(pid) .. ": " .. message .. "\n"
+					end
+					
 					if Methods.validateNameOrPid(id) then
 						
 				
@@ -525,8 +557,11 @@ end
 
 Methods.incognitoCmd = function(pid, cmd)
 
-	if Methods.validateNameOrPid(pid) then 
+	if Methods.validateNameOrPid(pid) then
+	
 		if Players[pid]:IsServerStaff() then
+		
+			if incognitoEnabled then
 
 				if Players[pid].data.customVariables.titleData.incognito == "off" then
 					Players[pid].data.customVariables.titleData.incognito = "on"
@@ -537,6 +572,9 @@ Methods.incognitoCmd = function(pid, cmd)
 				end
 				
 				Players[pid]:QuicksaveToDrive()
+			else
+				doMessage(pid, "disabledByStaffCmd")
+			end
 		else
 			doMessage(pid, "unsufficientRank")
 		end
@@ -557,9 +595,8 @@ end
 
 Methods.setTitleCmd = function(pid, cmd)
 	
-	if #cmd > 1 then
-		
-		if Methods.validateNameOrPid(pid) then
+	if Methods.validateNameOrPid(pid) then
+		if #cmd > 1 then
 			
 			local playerName = tes3mp.GetName(pid)
 			
@@ -599,6 +636,8 @@ Methods.setTitleCmd = function(pid, cmd)
 			else
 				doMessage(pid, "disabledByStaff")
 			end
+		else
+			doMessage(pid, "wrongUseCmd", menuCmd[4])
 		end
 	end
 end
@@ -611,6 +650,14 @@ Methods.SetColor = function(pid, newColor)
 	
 	Players[pid]:QuicksaveToDrive()
 
+end
+
+
+Methods.SetNickColor = function(pid, newColor)
+
+	Players[pid].data.customVariables.titleData.nickColor = newColor
+	
+	Players[pid]:QuicksaveToDrive()
 end
 
 
@@ -632,33 +679,84 @@ end
 
 Methods.setColorCmd = function(pid, cmd)
 	
-	if cmd[2] then
-		
-		if Methods.validateNameOrPid(pid) then
-		
-			local playerName = tes3mp.GetName(pid)
+	if Methods.validateNameOrPid(pid) then	
+		if #cmd > 1 then
 			
-			if not Methods.IsPlayerDisabled(playerName) then
-		
-				if Methods.HasTitle(pid) then
+				local playerName = tes3mp.GetName(pid)
+				
+				if not Methods.IsPlayerDisabled(playerName) then
+			
+					if Methods.HasTitle(pid) then
 
-					local newColor = Methods.LookupColor(cmd[2])
-					
-					if newColor then
-						Methods.SetColor(pid, newColor)
-						doMessage(pid, "changeSuccessSelf", lang.Color, color[newColor] .. string.lower(newColor))
-					else
-						doMessage(pid, "invalidColor", menuCmd[6])
+						local newColor = tableHelper.concatenateFromIndex(cmd, 2, "")
+						
+						if newColor:sub(1,1) == ' ' then
+							newColor = newColor:gsub("%s", "", 1)
+						end
+							
+						newColor = Methods.LookupColor(newColor)
+						
+						if newColor then
+							Methods.SetColor(pid, newColor)
+							doMessage(pid, "changeSuccessSelf", lang.Color, color[newColor] .. string.lower(newColor))
+						else
+							doMessage(pid, "invalidColor", menuCmd[6])
+						end
 					end
+				else
+					doMessage(pid, "disabledByStaff")
 				end
-			else
-				doMessage(pid, "disabledByStaff")
-			end
+		else
+			doMessage(pid, "wrongUseCmd", menuCmd[1])
 		end
-	else
-		doMessage(pid, "wrongUseCmd", menuCmd[1])
 	end
 end
+
+
+Methods.setNickColorCmd = function(pid, cmd)
+	
+	if Methods.validateNameOrPid(pid) then
+		
+		if nickColorEnabled then
+			if #cmd > 1 then
+			
+				local playerName = tes3mp.GetName(pid)
+				
+				if not Methods.IsPlayerDisabled(playerName) then
+			
+					if Methods.HasTitle(pid) then
+
+						local newColor = tableHelper.concatenateFromIndex(cmd, 2, "")
+						
+						if newColor:sub(1,1) == ' ' then
+							newColor = newColor:gsub("%s", "", 1)
+						end
+							
+						newColor = Methods.LookupColor(newColor)
+						
+						if newColor then
+							if not Methods.IsColorBarelyVisible(newColor) then
+								Methods.SetNickColor(pid, newColor)
+								doMessage(pid, "changeSuccessSelf", lang.NickColor, color[newColor] .. string.lower(newColor))
+							else
+								doMessage(pid, "invalidColorNick")
+							end
+						else
+							doMessage(pid, "invalidColor", menuCmd[6])
+						end
+					end
+				else
+					doMessage(pid, "disabledByStaff")
+				end
+			else
+				doMessage(pid, "wrongUseCmd", menuCmd[9])
+			end
+		else
+			doMessage(pid, "disabledByStaffCmd")
+		end
+	end
+end
+
 
 
 function timer_newTitle(pid)
@@ -683,6 +781,5 @@ customCommandHooks.registerCommand(cmds[4], Methods.setTitleCmd)
 customCommandHooks.registerCommand(cmds[5], Methods.toggleTitleForSelfCmd)
 customCommandHooks.registerCommand(cmds[6], Methods.showColorListCmd)
 customCommandHooks.registerCommand(cmds[7], Methods.pardonPlayerCmd)
-if incognitoEnabled ~= false then
-	customCommandHooks.registerCommand(cmds[8], Methods.incognitoCmd)
-end
+customCommandHooks.registerCommand(cmds[8], Methods.incognitoCmd)
+customCommandHooks.registerCommand(cmds[9], Methods.setNickColorCmd)
