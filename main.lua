@@ -1,15 +1,15 @@
 -- CHANGE THESE COMMANDS TO SUIT YOUR NEEDS (IT'S WHAT YOU TYPE IN CHAT AFTER THE '/')
 local cmds = {}
 
-cmds[1] = "setcolor"
+cmds[1] = "colortitle"
 cmds[2] = "disable"
 cmds[3] = "titlehelp"
 cmds[4] = "settitle"
 cmds[5] = "title"
-cmds[6] = "listcolors"
+cmds[6] = "colorlist"
 cmds[7] = "pardon"
 cmds[8] = "incognito"
-cmds[9] = "setnickcolor"
+cmds[9] = "colornick"
 
 local chatPrefix = "Titles" -- INFORMATIVE TAG DISPLAYED IN CHAT AFTER YOU PERFORM A CHANGE TO COLOR OR TITLE
 local chatPrefixColor = color.DodgerBlue -- IF YOU NEED TO CHANGE THESE, LOOK IN 'server/scripts/color.lua' or USE /listColors IN-GAME FOR POSSIBLE COLORS
@@ -20,7 +20,7 @@ local chatWarningColor = color.Orange
 local maxTitleLength = 12 -- maximum allowed characters per title ('space' counts as character)
 local incognitoEnabled = true -- change this to false if you don't wish staff members to use this cmd
 local nickColorEnabled = true -- change this to false if you don't wish players to use this cmd
-local barelyVisibleColorsNick = {"black", "navy", "midnightblue", "darkblue"}
+local barelyVisibleColors = {"black", "navy", "midnightblue", "darkblue"}
 
 
 
@@ -31,7 +31,8 @@ local titleData = {color = "GoldenRod", enabled = true, incognito = "off", nickC
 
 local cmdDesc = {}
 
-cmdDesc[1] = "\n - sets color of title to color of choice"
+cmdDesc[1] = "\n - sets color of title to color of choice" ..
+"\n - displays a list of colors to choose from"
 cmdDesc[2] = "\n - disables title for certain player"
 cmdDesc[3] = "\n - displays available title system commands"
 cmdDesc[4] = "\n - sets new title if it meets requirements"
@@ -39,11 +40,12 @@ cmdDesc[5] = "\n - toggles title visibility in chat"
 cmdDesc[6] = "\n - displays list of all available colors"
 cmdDesc[7] = "\n - pardons a player whose title was disabled"
 cmdDesc[8] = "\n - hides staff title in chat from regular players"
-cmdDesc[9] = "\n - sets color of chat nick to color of choice"
+cmdDesc[9] = "\n - sets color of chat nick to color of choice" ..
+"\n - displays a list of colors to choose from"
 
 local menuCmd = {}
 
-menuCmd[1] = chatInfoCommandColor .. "/" .. cmds[1] .. " <color>"
+menuCmd[1] = chatInfoCommandColor .. "/" .. cmds[1] .. " <color> or /" .. cmds[1]
 menuCmd[2] = chatInfoCommandColor .. "/" .. cmds[2] .. " <pid/name>"
 menuCmd[3] = chatInfoCommandColor .. "/" .. cmds[3]
 menuCmd[4] = chatInfoCommandColor .. "/" .. cmds[4] .. " <title>"
@@ -51,13 +53,13 @@ menuCmd[5] = chatInfoCommandColor .. "/" .. cmds[5]
 menuCmd[6] = chatInfoCommandColor .. "/" .. cmds[6]
 menuCmd[7] = chatInfoCommandColor .. "/" .. cmds[7] .. " <pid/name>"
 menuCmd[8] = chatInfoCommandColor .. "/" .. cmds[8]
-menuCmd[9] = chatInfoCommandColor .. "/" .. cmds[9] .. " <color>"
+menuCmd[9] = chatInfoCommandColor .. "/" .. cmds[9] .. " <color> or /" .. cmds[9]
 
 
 local guiId = {}
 
-guiId.staffHelp = 3285
-guiId.playerHelp = 3284
+guiId.pickColorNick = 32965
+guiId.pickColorTitle = 32966
 
 local lang = {}
 
@@ -67,24 +69,24 @@ lang["NickColor"] = "nick color"
 lang["changeSuccessSelf"] = "You have changed %s" .. color.Default .. " to %s" .. color.Default .. ".\n"
 lang["disableSuccesful"] = "You have disabled title for " .. chatInfoNameColor .. "%s" .. color.Default .. ".\n"
 lang["disabledTitle"] = "Chat title is off.\n"
-lang["disabledByStaff"] = chatWarningColor .. "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n"
-lang["disabledByStaffCmd"] = chatWarningColor .. "This command was disabled by staff.\n"
+lang["disabledByStaff"] = chatWarningColor .. "Your title has been disabled by staff for being offensive. Ask them politely to have it enabled again.\n" .. color.Default
+lang["disabledByStaffCmd"] = chatWarningColor .. "This command was disabled by staff.\n" .. color.Default
 lang["enabledTitle"] = "Chat title is on.\n"
 lang["maxCharsExceeded"] = chatWarningColor .. "Your title exceeded maximum allowed number of characters of %d" .. color.Default .. ".\n"
 lang["gotNewTitleAndColor"] = "You have been asigned a %s and it's %s. Use %s" .. color.Default .. " to change it, %s" .. color.Default .. " to change it's color or %s" .. color.Default .. " to see all related commands.\n"
-lang["unsufficientRank"] = chatWarningColor .. "You need to be at least moderator to use that command.\n"
+lang["unsufficientRank"] = chatWarningColor .. "You need to be at least moderator to use that command.\n" .. color.Default
 lang["wrongUseCmd"] = "Invalid command. Use %s" .. color.Default .. "\n"
-lang["unableToDisableStaffMemeber"] = chatWarningColor .. "You can't disable title for the staff member.\n"
-lang["restrictOffensiveTitle"] = chatWarningColor .. "Such title is considered offensive, don't be shy to use more polite one.\n"
+lang["unableToDisableStaffMemeber"] = chatWarningColor .. "You can't disable title for the staff member.\n" .. color.Default
+lang["restrictOffensiveTitle"] = chatWarningColor .. "Such title is considered offensive, don't be shy to use more polite one.\n" .. color.Default
 lang["enabledTitleForPlayer"] = "You have enabled title for " .. chatInfoNameColor .. "%s" .. color.Default .. ".\n"
 lang["enabledTitleByStaff"] = "Your title has been enabled again by a staff member.\n"
 lang["notInDisabled"] = chatWarningColor .. "Can't enable title for %s" .. color.Default .. ". They already have it enabled.\n"
-lang["restrictedToStaff"] = chatWarningColor .. "Sorry, this title is restricted to staff members only.\n"
+lang["restrictedToStaff"] = chatWarningColor .. "Sorry, this title is restricted to staff members only.\n" .. color.Default
 lang["invalidColor"] = "Invalid color. Use %s" .. color.Default .. " to display available colors.\n"
-lang["noSuchPlayerOnline"] = chatWarningColor .. "There's no player online matching that pid.\n"
+lang["noSuchPlayerOnline"] = chatWarningColor .. "There's no player online matching that pid.\n" .. color.Default
 lang["incognitoOff"] = "You have disabled incognito mode.\n"
 lang["incognitoOn"] = "You have enabled incognito mode.\n"
-lang["invalidColorNick"] = chatWarningColor .. "Dark colors are not allowed as they render nick barely visible.\n"
+lang["invalidColor"] = chatWarningColor .. "Not a valid color! " .. color.Default .. "Check %s " .. color.Default .. "for all available colors.\n"
 
 local function doMessage(pid, message, ...)
 
@@ -115,7 +117,7 @@ end
 
 local Methods = {}
 
-
+Methods.availableColorsList = {}
 
 Methods.displayHelpCmd = function(pid, cmd)
 
@@ -143,13 +145,25 @@ end
 
 Methods.IsColorBarelyVisible = function(colorToCheck)
 	
-	for _, col in pairs(barelyVisibleColorsNick) do
+	for _, col in pairs(barelyVisibleColors) do
 		if string.lower(colorToCheck) == string.lower(col) then
 			return true
 		end
 	end
 	
 	return false
+end
+
+
+Methods.gatherColors = function()
+
+	for thisColor, _ in pairs(color) do
+		if Methods.IsColorBarelyVisible(thisColor) == false then
+			table.insert(Methods.availableColorsList, thisColor)
+		end
+	end
+	
+	table.sort(Methods.availableColorsList)
 end
 
 
@@ -192,7 +206,7 @@ Methods.StaffHelp = function(pid)
 		list = list .. helpTable[i] .. divider
 	end
 	
-	tes3mp.ListBox(pid, guiId.staffHelp, title, list)
+	tes3mp.ListBox(pid, -1, title, list)
 end
 
 
@@ -211,7 +225,7 @@ Methods.PlayerHelp = function(pid)
 		list = list .. helpTable[i] .. divider
 	end
 	
-	tes3mp.ListBox(pid, guiId.playerHelp, title, list)
+	tes3mp.ListBox(pid, -1, title, list)
 end
 
 
@@ -219,28 +233,21 @@ Methods.showColorListCmd = function(pid, cmd)
 
 	if Methods.validateNameOrPid(pid) then
 		local list = ""
-		local title = color.Green .. "\nList of available colors"
+		local title = color.DodgerBlue .. "\nList of available colors"
 		
 		local divider = "\n"
-		local tempColors = {}
 		
-		for targetColor, _ in pairs(color) do
-			table.insert(tempColors, targetColor)
-		end
-		
-		table.sort(tempColors) 
-		
-		for i = 1, #tempColors do
-			local currentColor = tempColors[i]
+		for i = 1, #Methods.availableColorsList do
+			local currentColor = Methods.availableColorsList[i]
 			
-			if i == #tempColors then
+			if i == #Methods.availableColorsList then
 				divider = ""
 			end
 
 			list = list .. color[currentColor] .. currentColor .. divider
 		end
 		
-		tes3mp.ListBox(pid, guiId.playerHelp, title, list)
+		tes3mp.ListBox(pid, -1, title, list)
 	end
 end
 			
@@ -456,6 +463,7 @@ end
 local function OnServerPostInit(eventStatus)
 
 	LoadJson()
+	Methods.gatherColors()
 
 end
 
@@ -481,10 +489,6 @@ local function OnPlayerAuthentifiedHandler(eventStatus, pid)
 			end
 			
 			Methods.CreateEntry(pid)
-			
-			if Methods.IsColorBarelyVisible(Players[pid].data.customVariables.titleData.nickColor) then
-				Players[pid].data.customVariables.titleData.nickColor = White
-			end
 			
 		end
 	
@@ -535,6 +539,28 @@ local function OnPlayerSendMessageValidator(eventStatus, pid, message)
 			
 				return customEventHooks.makeEventStatus(false,false)
 			end
+	end
+end
+
+
+local function OnGUIAction(EventStatus, pid, idGui, data)
+	
+	if idGui == guiId.pickColorNick then
+		if tonumber(data) == 0 or tonumber(data) == 18446744073709551615 then
+			return
+		else
+			local newColor = Methods.availableColorsList[tonumber(data)]
+			Methods.SetNickColor(pid, newColor)
+			doMessage(pid, "changeSuccessSelf", lang.NickColor, color[newColor] .. string.lower(newColor))
+		end
+	elseif idGui == guiId.pickColorTitle then
+		if tonumber(data) == 0 or tonumber(data) == 18446744073709551615 then
+			return
+		else
+			local newColor = Methods.availableColorsList[tonumber(data)]
+			Methods.SetTitleColor(pid, newColor)
+			doMessage(pid, "changeSuccessSelf", lang.Color, color[newColor] .. string.lower(newColor))
+		end
 	end
 end
 		
@@ -642,7 +668,7 @@ end
 
 
 
-Methods.SetColor = function(pid, newColor)
+Methods.SetTitleColor = function(pid, newColor)
 
 	Players[pid].data.customVariables.titleData.color = newColor
 	
@@ -659,13 +685,37 @@ Methods.SetNickColor = function(pid, newColor)
 end
 
 
+Methods.guiShowAvailableColorsList = function(pid, guiNum)
+
+	local list = " - CANCEL -\n"
+	local title = color.DodgerBlue .. "\nPick one of the colors and press 'OK'"
+	local guiNumber = guiNum
+	
+	local divider = "\n"
+	
+	for i = 1, #Methods.availableColorsList do
+		local currentColor = Methods.availableColorsList[i]
+		
+		if i == #Methods.availableColorsList then
+			divider = ""
+		end
+
+		list = list .. color[currentColor] .. currentColor .. divider
+	end
+	
+	tes3mp.ListBox(pid, guiNumber, title, list)
+end
+
+	
+
+
 Methods.LookupColor = function(colorToFind)
 	
 	local newColor = ""
 	
-	for keyColor, valueColor in pairs(color) do
-		if string.upper(keyColor) == string.upper(colorToFind) or string.upper(valueColor) == string.upper(colorToFind) then
-			newColor = keyColor
+	for _, valueColor in pairs(Methods.availableColorsList) do
+		if string.upper(valueColor) == string.upper(colorToFind) then
+			newColor = valueColor
 			return newColor
 		end
 	end
@@ -675,7 +725,7 @@ Methods.LookupColor = function(colorToFind)
 end
 
 
-Methods.setColorCmd = function(pid, cmd)
+Methods.setTitleColorCmd = function(pid, cmd)
 	
 	if Methods.validateNameOrPid(pid) then	
 		if #cmd > 1 then
@@ -695,7 +745,7 @@ Methods.setColorCmd = function(pid, cmd)
 						newColor = Methods.LookupColor(newColor)
 						
 						if newColor then
-							Methods.SetColor(pid, newColor)
+							Methods.SetTitleColor(pid, newColor)
 							doMessage(pid, "changeSuccessSelf", lang.Color, color[newColor] .. string.lower(newColor))
 						else
 							doMessage(pid, "invalidColor", menuCmd[6])
@@ -705,7 +755,7 @@ Methods.setColorCmd = function(pid, cmd)
 					doMessage(pid, "disabledByStaff")
 				end
 		else
-			doMessage(pid, "wrongUseCmd", menuCmd[1])
+			Methods.guiShowAvailableColorsList(pid, guiId.pickColorTitle)
 		end
 	end
 end
@@ -733,12 +783,8 @@ Methods.setNickColorCmd = function(pid, cmd)
 						newColor = Methods.LookupColor(newColor)
 						
 						if newColor then
-							if not Methods.IsColorBarelyVisible(newColor) then
-								Methods.SetNickColor(pid, newColor)
-								doMessage(pid, "changeSuccessSelf", lang.NickColor, color[newColor] .. string.lower(newColor))
-							else
-								doMessage(pid, "invalidColorNick")
-							end
+							Methods.SetNickColor(pid, newColor)
+							doMessage(pid, "changeSuccessSelf", lang.NickColor, color[newColor] .. string.lower(newColor))
 						else
 							doMessage(pid, "invalidColor", menuCmd[6])
 						end
@@ -747,7 +793,7 @@ Methods.setNickColorCmd = function(pid, cmd)
 					doMessage(pid, "disabledByStaff")
 				end
 			else
-				doMessage(pid, "wrongUseCmd", menuCmd[9])
+				Methods.guiShowAvailableColorsList(pid, guiId.pickColorNick)
 			end
 		else
 			doMessage(pid, "disabledByStaffCmd")
@@ -772,7 +818,8 @@ end
 customEventHooks.registerHandler("OnServerPostInit", OnServerPostInit)
 customEventHooks.registerHandler("OnPlayerAuthentified", OnPlayerAuthentifiedHandler)
 customEventHooks.registerValidator("OnPlayerSendMessage", OnPlayerSendMessageValidator)
-customCommandHooks.registerCommand(cmds[1], Methods.setColorCmd)
+customEventHooks.registerHandler("OnGUIAction", OnGUIAction)
+customCommandHooks.registerCommand(cmds[1], Methods.setTitleColorCmd)
 customCommandHooks.registerCommand(cmds[2], Methods.disableTitleForPlayerCmd)
 customCommandHooks.registerCommand(cmds[3], Methods.displayHelpCmd)
 customCommandHooks.registerCommand(cmds[4], Methods.setTitleCmd)
