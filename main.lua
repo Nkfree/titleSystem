@@ -1,6 +1,4 @@
 -- CHANGE THESE COMMANDS TO SUIT YOUR NEEDS (IT'S WHAT YOU TYPE IN CHAT AFTER THE '/')
-
-
 local cmds = {}
 
 cmds[1] = "setcolor"
