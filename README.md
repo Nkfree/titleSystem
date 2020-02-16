@@ -8,7 +8,7 @@
 * There are commands for server staff to disable title for certain player if needed.
 * There are configurables at the top of the script (chat commands, few variables like maximum number of characters accepted per title)
 
-![colorlist)](https://github.com/Nkfree/titleSystem/blob/master/screenshots/titlehelp.png)
+![colorlist)](https://github.com/Nkfree/titleSystem/blob/master/screenshots/titlehel.png)
 * Change color of title to any in the game (there's command to show all colors)
 
 ![colorlist)](https://github.com/Nkfree/titleSystem/blob/master/screenshots/colorlist.png)
